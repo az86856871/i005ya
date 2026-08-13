@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🍱 今天吃什麼？</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Microsoft JhengHei', 'Segoe UI', sans-serif;
+            background: #ffffff;
+            min-height: 100vh;
+            color: #01579b;
+        }
+
+        header {
+            text-align: center;
+            padding: 24px 20px 16px;
+            background: linear-gradient(135deg, #006064, #0097a7, #00bcd4);
+            color: white;
+            box-shadow: 0 4px 16px rgba(0,96,100,0.3);
+        }
+
+        header h1 {
+            font-size: 2.2rem;
+            letter-spacing: 4px;
+            text-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+
+        header p {
+            font-size: 0.95rem;
+            opacity: 0.9;
+            margin-top: 6px;
+            letter-spacing: 1px;
+        }
+
+        /* ── 暱稱列 ── */
+        .nickname-bar {
+            background: #e0f7fa;
+            border-bottom: 1px solid #b2ebf2;
+            padding: 10px 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.92rem;
+            color: #006064;
+        }
+
+        .nickname-bar label { font-weight: bold; white-space: nowrap; }
+
+        .nickname-bar input {
+            padding: 6px 12px;
+            border: 1.5px solid #80deea;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            outline: none;
+            width: 140px;
+            background: white;
+            transition: border-color 0.2s;
+        }
+
+        .nickname-bar input:focus { border-color: #00bcd4; }
+
+        .nickname-hint { font-size: 0.82rem; color: #0097a7; opacity: 0.8; }
+
+        /* ── 主內容 ── */
+        .container {
+            max-width: 980px;
+            margin: 32px auto;
+            padding: 0 20px;
+            display: flex;
+            gap: 32px;
+            align-items: flex-start;
+        }
+
+        /* ── 左側選項列表 ── */
+        .options-panel {
+            width: 250px;
+            flex-shrink: 0;
+            background: white;
+            border-radius: 18px;
+            box-shadow: 0 4px 20px rgba(0,150,180,0.12);
+            border: 1px solid #e0f7fa;
+            overflow: hidden;
+        }
+
+        .options-panel h2 {
+            background: linear-gradient(135deg, #0097a7, #00bcd4);
+            color: white;
+            padding: 13px 18px;
+            font-size: 1rem;
+            letter-spacing: 1px;
+        }
+
+        .options-list {
+            list-style: none;
+            max-height: 360px;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .options-list::-webkit-scrollbar { width: 5px; }
+        .options-list::-webkit-scrollbar-track { background: #e0f7fa; }
+        .options-list::-webkit-scrollbar-thumb { background: #80deea; border-radius: 4px; }
+
+        .options-list li {
+            display: flex;
+            align-items: center;
+            padding: 8px 10px;
+            border-radius: 9px;
+            margin-bottom: 5px;
+            background: #e0f7fa;
+            border: 1.5px solid #b2ebf2;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+        }
+
+        .options-list li:hover { background: #b2ebf2; }
+
+        .color-dot {
+            display: inline-block;
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+
+        .option-name { flex: 1; }
+
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #80deea;
+            cursor: pointer;
+            font-size: 0.88rem;
+            padding: 2px 5px;
+            border-radius: 4px;
+            transition: color 0.2s, background 0.2s;
+        }
+
+        .delete-btn:hover { color: #0097a7; background: #e0f7fa; }
+
+        .add-area {
+            padding: 11px;
+            border-top: 1px solid #b2ebf2;
+            display: flex;
+            gap: 7px;
+        }
+
+        .add-area input {
+            flex: 1;
+            padding: 7px 11px;
+            border: 1.5px solid #80deea;
+            border-radius: 9px;
+            font-size: 0.87rem;
+            font-family: inherit;
+            outline: none;
+            background: #f0fdff;
+            transition: border-color 0.2s;
+        }
+
+        .add-area input:focus { border-color: #00bcd4; }
+
+        .add-btn {
+            background: linear-gradient(135deg, #0097a7, #00bcd4);
+            color: white;
+            border: none;
+            border-radius: 9px;
+            padding: 7px 13px;
+            font-size: 1.15rem;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+        }
+
+        .add-btn:hover { opacity: 0.9; transform: scale(1.05); }
+        .add-btn:active { transform: scale(0.97); }
+
+        /* ── 右側：轉盤 + 記錄 ── */
+        .right-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        canvas {
+            display: block;
+            filter: drop-shadow(0 8px 20px rgba(0,150,180,0.22));
+        }
+
+        .spin-btn {
+            background: linear-gradient(135deg, #006064, #0097a7, #00bcd4);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 14px 42px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            font-family: inherit;
+            cursor: pointer;
+            box-shadow: 0 5px 18px rgba(0,150,180,0.4);
+            transition: transform 0.12s, box-shadow 0.2s;
+            letter-spacing: 3px;
+        }
+
+        .spin-btn:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(0,150,180,0.5);
+        }
+
+        .spin-btn:active:not(:disabled) { transform: translateY(0); }
+        .spin-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+        .result-box {
+            background: white;
+            border-radius: 18px;
+            padding: 16px 32px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,150,180,0.12);
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #0097a7;
+            min-width: 280px;
+            border: 2px solid #b2ebf2;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .result-box.show {
+            opacity: 1;
+            animation: pop 0.45s cubic-bezier(.36,1.6,.6,1);
+        }
+
+        .result-box.hidden { opacity: 0; }
+
+        @keyframes pop {
+            0%   { transform: scale(0.7); }
+            100% { transform: scale(1); }
+        }
+
+        /* ── 共同記錄 ── */
+        .records-panel {
+            width: 100%;
+            max-width: 980px;
+            margin: 0 auto 40px;
+            padding: 0 20px;
+        }
+
+        .records-panel h2 {
+            font-size: 1rem;
+            color: #0097a7;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e0f7fa;
+            letter-spacing: 1px;
+        }
+
+        .records-list {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            max-height: 260px;
+            overflow-y: auto;
+        }
+
+        .records-list::-webkit-scrollbar { width: 5px; }
+        .records-list::-webkit-scrollbar-thumb { background: #80deea; border-radius: 4px; }
+
+        .record-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            background: #f0fdff;
+            border: 1px solid #b2ebf2;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .record-time { color: #80deea; font-size: 0.8rem; white-space: nowrap; }
+        .record-name { font-weight: bold; color: #006064; }
+        .record-arrow { color: #b2ebf2; }
+        .record-result { color: #0097a7; font-weight: bold; }
+
+        .records-empty {
+            text-align: center;
+            color: #b2ebf2;
+            font-size: 0.9rem;
+            padding: 20px;
+        }
+
+        @media (max-width: 700px) {
+            header h1 { font-size: 1.7rem; letter-spacing: 2px; }
+            header p  { font-size: 0.85rem; }
+
+            .nickname-bar {
+                flex-wrap: wrap;
+                padding: 10px 16px;
+                gap: 8px;
+            }
+            .nickname-hint { display: none; }
+            .nickname-bar input { width: 160px; }
+
+            .container {
+                flex-direction: column;
+                align-items: center;
+                margin: 20px auto;
+                padding: 0 14px;
+                gap: 20px;
+            }
+
+            .options-panel { width: 100%; }
+            .options-list  { max-height: 200px; }
+
+            .right-col { width: 100%; align-items: center; }
+
+            canvas {
+                width: calc(100vw - 40px);
+                height: calc(100vw - 40px);
+                max-width: 360px;
+                max-height: 360px;
+            }
+
+            .spin-btn {
+                padding: 13px 32px;
+                font-size: 1.1rem;
+                letter-spacing: 1px;
+            }
+
+            .result-box {
+                font-size: 1.2rem;
+                padding: 14px 20px;
+                min-width: unset;
+                width: 100%;
+                text-align: center;
+            }
+
+            .records-panel { padding: 0 14px; margin-bottom: 30px; }
+            .records-list  { max-height: 220px; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>🍱 今天吃什麼？</h1>
+    <p>和好友一起轉轉看，讓命運來決定午餐吧！</p>
+</header>
+
+<!-- 暱稱列 -->
+<div class="nickname-bar">
+    <label>👤 你的名字：</label>
+    <input type="text" id="nickname" placeholder="輸入暱稱" maxlength="8" />
+    <span class="nickname-hint">（轉盤結果會記錄你的名字）</span>
+</div>
+
+<div class="container">
+
+    <!-- 左側：選項清單 -->
+    <div class="options-panel">
+        <h2>🍽️ 選項清單</h2>
+        <ul class="options-list" id="optionsList"></ul>
+        <div class="add-area">
+            <input type="text" id="newOption" placeholder="新增選項…" maxlength="12" />
+            <button class="add-btn" onclick="addOption()" title="新增">＋</button>
+        </div>
+    </div>
+
+    <!-- 右側：轉盤 -->
+    <div class="right-col">
+        <canvas id="wheel" width="400" height="400"></canvas>
+        <button class="spin-btn" id="spinBtn" onclick="spin()">🎰 開始轉！</button>
+        <div class="result-box hidden" id="resultBox"></div>
+    </div>
+
+</div>
+
+<!-- 共同記錄 -->
+<div class="records-panel">
+    <h2>📋 共同記錄</h2>
+    <div class="records-list" id="recordsList">
+        <div class="records-empty">還沒有記錄，快來轉第一個吧！</div>
+    </div>
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
+<script>
+    /* ── Firebase 初始化 ── */
+    const firebaseConfig = {
+        apiKey: "AIzaSyByj_xc97lL-3EuhDBxDtvKzcniXDTF9jc",
+        authDomain: "what-to-eat-today-friend.firebaseapp.com",
+        databaseURL: "https://what-to-eat-today-friend-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "what-to-eat-today-friend",
+        storageBucket: "what-to-eat-today-friend.firebasestorage.app",
+        messagingSenderId: "476331785151",
+        appId: "1:476331785151:web:7d64388389db01ab993f0a"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    /* ── 常數 ── */
+    const STORAGE_KEY = 'lunch-picker-options-v1';
+    const NICKNAME_KEY = 'lunch-picker-nickname';
+    const DEFAULT_OPTIONS = [
+        '🇰🇷 韓式料理', '🍝 義大利麵', '🍲 火鍋',
+        '🍜 拉麵', '🍕 披薩', '🍣 壽司',
+        '🍛 咖哩', '🥩 燒肉', '🍱 便當',
+    ];
+    const COLORS = [
+        '#4DD0E1', '#64B5F6', '#4FC3F7', '#80DEEA',
+        '#26C6DA', '#81D4FA', '#4DB6AC', '#80CBC4',
+        '#29B6F6', '#00BCD4',
+    ];
+
+    let options = [];
+    let currentAngle = 0;
+    let isSpinning = false;
+
+    const canvas    = document.getElementById('wheel');
+    const ctx       = canvas.getContext('2d');
+    const listEl    = document.getElementById('optionsList');
+    const inputEl   = document.getElementById('newOption');
+    const spinBtn   = document.getElementById('spinBtn');
+    const resultBox = document.getElementById('resultBox');
+    const nicknameEl  = document.getElementById('nickname');
+    const recordsEl   = document.getElementById('recordsList');
+
+    /* ── 暱稱 ── */
+    nicknameEl.value = localStorage.getItem(NICKNAME_KEY) || '';
+    nicknameEl.addEventListener('input', () => {
+        localStorage.setItem(NICKNAME_KEY, nicknameEl.value.trim());
+    });
+
+    /* ── 選項資料 ── */
+    function load() {
+        try {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            options = saved ? JSON.parse(saved) : [...DEFAULT_OPTIONS];
+        } catch { options = [...DEFAULT_OPTIONS]; }
+    }
+
+    function save() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(options));
+    }
+
+    /* ── 選項列表渲染 ── */
+    function renderList() {
+        listEl.innerHTML = '';
+        options.forEach((name, i) => {
+            const li = document.createElement('li');
+
+            const dot = document.createElement('span');
+            dot.className = 'color-dot';
+            dot.style.background = COLORS[i % COLORS.length];
+
+            const span = document.createElement('span');
+            span.className = 'option-name';
+            span.textContent = name;
+
+            const del = document.createElement('button');
+            del.className = 'delete-btn';
+            del.textContent = '✕';
+            del.onclick = () => deleteOption(i);
+
+            li.append(dot, span, del);
+            listEl.appendChild(li);
+        });
+    }
+
+    function addOption() {
+        const name = inputEl.value.trim();
+        if (!name) return;
+        options.push(name);
+        inputEl.value = '';
+        save(); renderList(); drawWheel(); hideResult();
+    }
+
+    function deleteOption(i) {
+        options.splice(i, 1);
+        save(); renderList(); drawWheel(); hideResult();
+    }
+
+    inputEl.addEventListener('keydown', e => { if (e.key === 'Enter') addOption(); });
+
+    /* ── 轉盤繪製 ── */
+    function drawWheel() {
+        const W = canvas.width, H = canvas.height;
+        const cx = W / 2, cy = H / 2;
+        const radius = Math.min(cx, cy) - 22;
+        const n = options.length;
+
+        ctx.clearRect(0, 0, W, H);
+
+        if (n === 0) {
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
+            ctx.fillStyle = '#e0f7fa';
+            ctx.fill();
+            ctx.fillStyle = '#0097a7';
+            ctx.font = 'bold 17px "Microsoft JhengHei", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('請新增選項', cx, cy);
+            drawPointer(cx, cy, radius);
+            return;
+        }
+
+        const slice = (2 * Math.PI) / n;
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(currentAngle * Math.PI / 180);
+
+        for (let i = 0; i < n; i++) {
+            const sa = -Math.PI / 2 + i * slice;
+            const ea = sa + slice;
+
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.arc(0, 0, radius, sa, ea);
+            ctx.closePath();
+            ctx.fillStyle = COLORS[i % COLORS.length];
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+
+            ctx.save();
+            ctx.rotate(sa + slice / 2);
+            ctx.textAlign = 'right';
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 13px "Microsoft JhengHei", "Segoe UI Emoji", sans-serif';
+            ctx.textBaseline = 'middle';
+            ctx.shadowColor = 'rgba(0,80,100,0.4)';
+            ctx.shadowBlur = 4;
+            ctx.fillText(options[i], radius - 14, 0);
+            ctx.restore();
+        }
+
+        ctx.restore();
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, 20, 0, 2 * Math.PI);
+        ctx.fillStyle = '#fff';
+        ctx.fill();
+        ctx.strokeStyle = '#00bcd4';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, 7, 0, 2 * Math.PI);
+        ctx.fillStyle = '#00bcd4';
+        ctx.fill();
+
+        drawPointer(cx, cy, radius);
+    }
+
+    function drawPointer(cx, cy, radius) {
+        const tip = cy - radius - 4;
+        ctx.beginPath();
+        ctx.moveTo(cx, tip + 6);
+        ctx.lineTo(cx - 13, tip - 22);
+        ctx.lineTo(cx + 13, tip - 22);
+        ctx.closePath();
+        ctx.fillStyle = '#006064';
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    }
+
+    /* ── 旋轉 ── */
+    function spin() {
+        if (isSpinning || options.length < 2) {
+            if (options.length < 2) shake();
+            return;
+        }
+
+        isSpinning = true;
+        spinBtn.disabled = true;
+        hideResult();
+
+        const extraSpins = 6 + Math.random() * 6;
+        const extraDeg   = Math.random() * 360;
+        const totalDeg   = extraSpins * 360 + extraDeg;
+        const duration   = 4200 + Math.random() * 800;
+        const startAngle = currentAngle;
+        const endAngle   = currentAngle + totalDeg;
+        const t0         = performance.now();
+
+        function animate(now) {
+            const p = Math.min((now - t0) / duration, 1);
+            const e = 1 - Math.pow(1 - p, 5);
+            currentAngle = startAngle + (endAngle - startAngle) * e;
+            drawWheel();
+
+            if (p < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                currentAngle = endAngle;
+                isSpinning = false;
+                spinBtn.disabled = false;
+                showResult();
+            }
+        }
+
+        requestAnimationFrame(animate);
+    }
+
+    /* ── 結果 ── */
+    function showResult() {
+        const n = options.length;
+        const sliceDeg = 360 / n;
+        const normalized = ((360 - currentAngle % 360) % 360 + 360) % 360;
+        const idx = Math.floor(normalized / sliceDeg) % n;
+        const result = options[idx];
+
+        resultBox.textContent = `🎉 就決定是：${result}！`;
+        resultBox.className = '';
+        void resultBox.offsetWidth;
+        resultBox.classList.add('show');
+
+        saveRecord(result);
+    }
+
+    function hideResult() {
+        resultBox.className = 'result-box hidden';
+    }
+
+    function shake() {
+        spinBtn.textContent = '⚠️ 至少需要 2 個選項';
+        setTimeout(() => { spinBtn.textContent = '🎰 開始轉！'; }, 1500);
+    }
+
+    /* ── Firebase：寫入記錄 ── */
+    function saveRecord(result) {
+        const name = nicknameEl.value.trim() || '匿名';
+        db.ref('records').push({ name, result, time: Date.now() });
+    }
+
+    /* ── Firebase：即時監聽（每筆獨立加入，不重繪整個列表）── */
+    function buildRecordItem(r) {
+        const t = new Date(r.time);
+        const timeStr = `${String(t.getMonth()+1).padStart(2,'0')}/${String(t.getDate()).padStart(2,'0')} `
+                      + `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
+        const item = document.createElement('div');
+        item.className = 'record-item';
+        item.innerHTML = `
+            <span class="record-time">${timeStr}</span>
+            <span class="record-name">${escHtml(r.name)}</span>
+            <span class="record-arrow">→</span>
+            <span class="record-result">${escHtml(r.result)}</span>
+        `;
+        return item;
+    }
+
+    // child_added：初始載入每筆各自觸發一次（chronological 順序），新增時也即時觸發
+    db.ref('records').orderByChild('time').on('child_added', snapshot => {
+        const r = snapshot.val();
+        if (!r) return;
+
+        // 移除「還沒有記錄」提示
+        const empty = recordsEl.querySelector('.records-empty');
+        if (empty) empty.remove();
+
+        // 插到最前面（最新在最上方）
+        recordsEl.insertBefore(buildRecordItem(r), recordsEl.firstChild);
+
+        // 超過 50 筆時刪最舊的（列表最後一個）
+        if (recordsEl.children.length > 50) {
+            recordsEl.removeChild(recordsEl.lastChild);
+        }
+    });
+
+    function escHtml(str) {
+        return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    /* ── 啟動 ── */
+    load();
+    renderList();
+    drawWheel();
+</script>
+</body>
+</html>
